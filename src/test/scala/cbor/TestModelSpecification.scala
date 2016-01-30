@@ -1,6 +1,6 @@
 package cbor
 
-import org.scalacheck.Prop.forAll
+import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalacheck.Properties
 import org.scalacheck.Shapeless._
 
@@ -10,6 +10,9 @@ import org.scalacheck.Shapeless._
 class TestModelSpecification extends Properties("TestModel") {
   property("Generates arbitrary") = forAll { (x: TestModel.CborTree) =>
     !x.toString.isEmpty
+  }
+  property("Converts to byte array") = forAll { (x: List[TestModel.CborTree]) =>
+    x.nonEmpty ==> !TestModel.serialize(x).isEmpty
   }
 
 }
