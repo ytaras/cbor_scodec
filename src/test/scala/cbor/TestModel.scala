@@ -1,8 +1,11 @@
 package cbor
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import co.nstant.in.cbor.{CborBuilder, CborEncoder}
+import co.nstant.in.cbor.model.{DataItem, Number}
+import co.nstant.in.cbor.{CborBuilder, CborDecoder, CborEncoder}
+
+import scala.collection.JavaConversions._
 
 /**
   * Created by ytaras on 1/30/16.
@@ -17,14 +20,25 @@ object TestModel {
     baos.toByteArray
   }
 
+  def deserialize(x: Array[Byte]): Seq[DataItem] = {
+    new CborDecoder(new ByteArrayInputStream(x)).decode()
+  }
 
   sealed trait CborTree {
     def build(encoder: CborBuilder)
+
+    def matches(di: DataItem): Boolean
   }
 
-  case class Integer(i: Int) extends CborTree {
+  case class BigInteger(i: Int) extends CborTree {
     override def build(encoder: CborBuilder): Unit =
       encoder.add(i)
+
+    override def matches(di: DataItem): Boolean = di match {
+      case din: Number => din.getValue.intValue() == i
+      case _ => false
+
+    }
   }
 
 }
