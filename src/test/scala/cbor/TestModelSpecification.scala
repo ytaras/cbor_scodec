@@ -1,10 +1,13 @@
 package cbor
 
 import cbor.TestModel.{CborTree, deserialize, serialize}
+import cbor.coded.{Codecs, Tags}
 import co.nstant.in.cbor.CborBuilder
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalacheck.Properties
 import org.scalacheck.Shapeless._
+import scodec.Codec
+import scodec.bits.ByteVector
 
 import scala.collection.JavaConversions._
 
@@ -29,4 +32,8 @@ class TestModelSpecification extends Properties("TestModel") {
     x.matches(di)
   }
 
+  property("Parses major type") = forAll { (x: CborTree) =>
+    val bytes = ByteVector(serialize(x))
+    Codec.decode(bytes.toBitVector)(Codecs.majorType) == Tags.UnsignedInteger
+  }
 }

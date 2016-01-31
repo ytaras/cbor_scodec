@@ -11,6 +11,9 @@ import scala.collection.JavaConversions._
   * Created by ytaras on 1/30/16.
   */
 object TestModel {
+  def serialize(x: CborTree): Array[Byte] = {
+    serialize(List(x))
+  }
   def serialize(x: List[CborTree]): Array[Byte] = {
     val baos = new ByteArrayOutputStream()
     val encoder = new CborEncoder(baos)
