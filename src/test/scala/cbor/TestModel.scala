@@ -27,21 +27,22 @@ object TestModel {
     new CborDecoder(new ByteArrayInputStream(x)).decode()
   }
 
-  sealed trait CborTree {
-    def build(encoder: CborBuilder)
 
-    def matches(di: DataItem): Boolean
+}
+
+sealed trait CborTree {
+  def build(encoder: CborBuilder)
+
+  def matches(di: DataItem): Boolean
+}
+
+case class BigInteger(i: Int) extends CborTree {
+  override def build(encoder: CborBuilder): Unit =
+    encoder.add(i)
+
+  override def matches(di: DataItem): Boolean = di match {
+    case din: Number => din.getValue.intValue() == i
+    case _ => false
+
   }
-
-  case class BigInteger(i: Int) extends CborTree {
-    override def build(encoder: CborBuilder): Unit =
-      encoder.add(i)
-
-    override def matches(di: DataItem): Boolean = di match {
-      case din: Number => din.getValue.intValue() == i
-      case _ => false
-
-    }
-  }
-
 }

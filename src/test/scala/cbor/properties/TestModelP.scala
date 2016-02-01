@@ -1,20 +1,20 @@
-package cbor
+package cbor.properties
 
-import cbor.TestModel.{CborTree, deserialize, serialize}
-import cbor.coded.{Codecs, Tags}
+import cbor.TestModel._
+import cbor._
 import co.nstant.in.cbor.CborBuilder
 import org.scalacheck.Prop.{BooleanOperators, forAll}
 import org.scalacheck.Properties
 import org.scalacheck.Shapeless._
-import scodec.Codec
-import scodec.bits.ByteVector
+import shapeless.ops.coproduct.{Length => CoproductLength}
+import shapeless.ops.hlist.{Length => HListLength}
 
 import scala.collection.JavaConversions._
 
 /**
   * Created by ytaras on 1/30/16.
   */
-class TestModelSpecification extends Properties("TestModel") {
+class TestModelP extends Properties("TestModel") {
   property("Generates arbitrary") = forAll { (x: CborTree) =>
     !x.toString.isEmpty
   }
@@ -31,9 +31,5 @@ class TestModelSpecification extends Properties("TestModel") {
     val Seq(di) = builder.build().toSeq
     x.matches(di)
   }
-
-  property("Parses major type") = forAll { (x: CborTree) =>
-    val bytes = ByteVector(serialize(x))
-    Codec.decode(bytes.toBitVector)(Codecs.majorType) == Tags.UnsignedInteger
-  }
 }
+
