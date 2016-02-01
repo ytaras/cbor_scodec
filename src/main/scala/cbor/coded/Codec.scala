@@ -2,9 +2,11 @@ package cbor.coded
 
 import cbor.coded.Tags.MajorType
 import eu.timepit.refined.api.{RefType, Validate}
-import eu.timepit.refined.numeric.Positive
+import eu.timepit.refined.numeric.Interval
 import eu.timepit.refined.refineMT
 import scodec.Codec
+import shapeless.Nat._0
+import shapeless.Nats
 import shapeless.tag.@@
 
 import scala.language.higherKinds
@@ -24,6 +26,7 @@ object Codecs {
 }
 
 object Tags {
-  type MajorType = Positive
-  val UnsignedInteger = refineMT[MajorType](1)
+  type MajorType = Interval.Closed[_0, Nats#_8]
+  val UnsignedInteger = refineMT[MajorType](0)
+  val NegativeInteger = refineMT[MajorType](1)
 }

@@ -12,5 +12,6 @@ libraryDependencies ++= Seq(
   "co.nstant.in" % "cbor" % "0.7" % "test",
   "eu.timepit" %% "refined-scodec" % "0.3.3",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
-  "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.3.1" % "test"
+  "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.3.1" % "test",
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 )

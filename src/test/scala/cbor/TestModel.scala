@@ -26,8 +26,6 @@ object TestModel {
   def deserialize(x: Array[Byte]): Seq[DataItem] = {
     new CborDecoder(new ByteArrayInputStream(x)).decode()
   }
-
-
 }
 
 sealed trait CborTree {
