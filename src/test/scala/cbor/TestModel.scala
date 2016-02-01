@@ -4,6 +4,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import co.nstant.in.cbor.model.{DataItem, Number}
 import co.nstant.in.cbor.{CborBuilder, CborDecoder, CborEncoder}
+import scodec.bits.ByteVector
+import scodec.{Attempt, DecodeResult, GenCodec}
 
 import scala.collection.JavaConversions._
 
@@ -25,6 +27,18 @@ object TestModel {
 
   def deserialize(x: Array[Byte]): Seq[DataItem] = {
     new CborDecoder(new ByteArrayInputStream(x)).decode()
+  }
+
+  implicit class ResultOps[V](inner: Attempt[DecodeResult[V]]) {
+    def get: V = inner.toOption.get.value
+  }
+
+  implicit class CborTreeOps(inner: CborTree) {
+    def codeDecode[V](codec: GenCodec[_, V]) = codec.decode(
+      ByteVector(serialize).toBitVector
+    )
+
+    def serialize: Array[Byte] = TestModel.serialize(inner)
   }
 }
 
