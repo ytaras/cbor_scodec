@@ -4,7 +4,7 @@ version := "1.0"
 
 scalaVersion := "2.11.7"
 
-//scalacOptions += "-Ymacro-debug-lite"
+//scalacOptions += "-Xlog-implicits"
 
 libraryDependencies ++= Seq(
   "org.scodec" %% "scodec-core" % "1.8.3",

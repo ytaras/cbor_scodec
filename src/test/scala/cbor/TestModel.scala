@@ -2,10 +2,9 @@ package cbor
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import co.nstant.in.cbor.model.{DataItem, Number}
+import co.nstant.in.cbor.model.DataItem
 import co.nstant.in.cbor.{CborBuilder, CborDecoder, CborEncoder}
-import scodec.bits.ByteVector
-import scodec.{Attempt, DecodeResult, GenCodec}
+import scodec.{Attempt, DecodeResult}
 
 import scala.collection.JavaConversions._
 
@@ -13,10 +12,11 @@ import scala.collection.JavaConversions._
   * Created by ytaras on 1/30/16.
   */
 object TestModel {
-  def serialize(x: CborTree): Array[Byte] = {
+  def serialize(x: CborValue): Array[Byte] = {
     serialize(List(x))
   }
-  def serialize(x: List[CborTree]): Array[Byte] = {
+
+  def serialize(x: List[CborValue]): Array[Byte] = {
     val baos = new ByteArrayOutputStream()
     val encoder = new CborEncoder(baos)
     val builder = new CborBuilder()
@@ -33,28 +33,12 @@ object TestModel {
     def get: V = inner.toOption.get.value
   }
 
-  implicit class CborTreeOps(inner: CborTree) {
-    def codeDecode[V](codec: GenCodec[_, V]) = codec.decode(
-      ByteVector(serialize).toBitVector
-    )
+  implicit class CborValueOps(inner: CborValue) {
+    def build(builder: CborBuilder): Unit = inner match {
+      case CInteger(i) => builder.add(i.bigInteger)
 
-    def serialize: Array[Byte] = TestModel.serialize(inner)
+      //      case CString(s) => builder.add(s)
+    }
   }
 }
 
-sealed trait CborTree {
-  def build(encoder: CborBuilder)
-
-  def matches(di: DataItem): Boolean
-}
-
-case class BigInteger(i: Int) extends CborTree {
-  override def build(encoder: CborBuilder): Unit =
-    encoder.add(i)
-
-  override def matches(di: DataItem): Boolean = di match {
-    case din: Number => din.getValue.intValue() == i
-    case _ => false
-
-  }
-}
