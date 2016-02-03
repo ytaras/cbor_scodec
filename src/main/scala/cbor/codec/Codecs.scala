@@ -37,8 +37,7 @@ trait StringCodecs {
 
 }
 
-trait NumberCodecs {
-  type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
+trait NumberCodecs extends NumberOps {
   val smallByteCodec = {
     val validate: Byte => Attempt[Byte] = {
       case x if 0 <= x && x <= 23 => Attempt.successful(x)
@@ -76,6 +75,11 @@ trait NumberCodecs {
     constant(marker) ~> c
   }
 
+  }
+
+trait NumberOps {
+  type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
+
   object negate extends Poly1 {
     implicit def number[N: Numeric]: Case.Aux[N, N] = at[N] { x =>
       val instance = implicitly[Numeric[N]]
@@ -83,7 +87,5 @@ trait NumberCodecs {
       instance.minus(minusOne, x)
     }
   }
-
-
 }
 
