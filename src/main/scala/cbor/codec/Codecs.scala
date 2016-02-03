@@ -39,20 +39,25 @@ trait NumberCodecs {
 
   import scodec.bits._
 
-  val smallByteCodec: Codec[Short] = {
-    val validate: Short => Attempt[Short] = {
+  val smallByteCodec = {
+    val validate: Byte => Attempt[Byte] = {
       case x if 0 <= x && x <= 23 => Attempt.successful(x)
       case x => Attempt.failure(Err(s"$x is too large to fit into 5 bit cbor"))
     }
-    ushort(5).exmap(validate, validate)
+    ubyte(5).exmap(validate, validate)
   }
-  val largerByteCodec: Codec[Short] = {
-    val marker = bin"11000"
-    require(marker.toShort(signed = false) == 24)
+  val uint8Codec = prefixedCodec(24, ushort(8))
+  val uint16Codec = prefixedCodec(25, uint(16))
+  val uint32Codec = prefixedCodec(26, ulong(32))
+  val uint64Codec = prefixedCodec(27, ulong(32) ~ ulong(32))
+  val numberCodec = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
+
+  def prefixedCodec[A](p: Byte, c: Codec[A]) = {
+    val marker = BitVector.fromByte(p).drop(3)
+    require(marker.toByte(signed = false) == p)
     require(marker.size == 5)
-    constant(marker) ~> ushort(8)
+    constant(marker) ~> c
   }
-  val byteCodec: Codec[Short] = codecs.choice(smallByteCodec, largerByteCodec)
 
 }
 
