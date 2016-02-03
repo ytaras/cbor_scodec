@@ -4,6 +4,7 @@ import org.scalatest.enablers.Containing
 import scodec.bits._
 import scodec.codecs._
 import scodec.{Attempt, Codec, DecodeResult}
+import shapeless.Poly1
 
 import scala.language.higherKinds
 
@@ -37,8 +38,20 @@ trait ScodecHelpers {
 
   def decodedWithPrefix[A](p: BitVector)(c: Codec[A], b: Array[Byte]) = {
     val codec = constant(p) ~> c
+    decode(codec)(b)
+  }
+
+  def decode[A](c: Codec[A])(b: Array[Byte]) = {
     val data = ByteVector(b).toBitVector
-    Codec.decode(data)(codec)
+    Codec.decode(data)(c)
+  }
+
+  object toNum extends Poly1 {
+    implicit def caseNum[N: Numeric] = at[N](identity)
+
+    implicit def caseLongLong = at[(Long, Long)] { case (o, t) =>
+      (BigInt(o) << 32) + t
+    }
   }
 
 }

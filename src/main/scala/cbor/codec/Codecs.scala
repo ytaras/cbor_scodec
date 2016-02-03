@@ -1,8 +1,8 @@
 package cbor.codec
 
-import cbor.{CInteger, CborValue}
+import cbor.CInteger
 import scodec._
-import scodec.bits.BitVector
+import scodec.bits.{BitVector, _}
 import scodec.codecs._
 
 import scala.language.higherKinds
@@ -30,15 +30,13 @@ object Codecs extends NumberCodecs {
     override def decode(bits: BitVector): Attempt[DecodeResult[CInteger]] = decoder.map(CInteger(_)).decode(bits)
   }
 
-  val singleValueCodec = (byte(3).unit(0) ~> intValueCodec).upcast[CborValue]
+  val singleValueCodec =
+    constant(bin"000") ~> numberCodec
 
 
 }
 
 trait NumberCodecs {
-
-  import scodec.bits._
-
   val smallByteCodec = {
     val validate: Byte => Attempt[Byte] = {
       case x if 0 <= x && x <= 23 => Attempt.successful(x)
