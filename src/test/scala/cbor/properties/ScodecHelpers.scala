@@ -48,10 +48,6 @@ trait ScodecHelpers {
 
   object toNum extends Poly1 {
     implicit def caseNum[N: Numeric] = at[N](identity)
-
-    implicit def caseLongLong = at[(Long, Long)] { case (o, t) =>
-      (BigInt(o) << 32) + t
-    }
   }
 
 }

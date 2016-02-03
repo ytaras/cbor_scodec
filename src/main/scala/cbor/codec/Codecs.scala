@@ -1,6 +1,5 @@
 package cbor.codec
 
-import cbor.CInteger
 import scodec._
 import scodec.bits.{BitVector, _}
 import scodec.codecs._
@@ -12,28 +11,8 @@ import scala.language.higherKinds
   */
 object Codecs extends NumberCodecs {
 
-  val intValueCodec = new Codec[CInteger] {
-    val sizeCodec = ubyte(5)
-    // TODO - Maybe use disc union?
-    val decoder: Decoder[Long ~ Long] = sizeCodec.asDecoder flatMap {
-      case 24 => provide(0L) ~ ulong(8)
-      case 25 => provide(0L) ~ ulong(16)
-      case 26 => provide(0L) ~ ulong(32)
-      case 27 => ulong(32) ~ ulong(32)
-      case b => provide(0L ~ b.toLong)
-    }
-
-    override def encode(value: CInteger): Attempt[BitVector] = ???
-
-    override def sizeBound: SizeBound = sizeCodec.sizeBound.atLeast
-
-    override def decode(bits: BitVector): Attempt[DecodeResult[CInteger]] = decoder.map(CInteger(_)).decode(bits)
-  }
-
   val singleValueCodec =
     constant(bin"000") ~> numberCodec
-
-
 }
 
 trait NumberCodecs {
@@ -47,7 +26,21 @@ trait NumberCodecs {
   val uint8Codec = prefixedCodec(24, ushort(8))
   val uint16Codec = prefixedCodec(25, uint(16))
   val uint32Codec = prefixedCodec(26, ulong(32))
-  val uint64Codec = prefixedCodec(27, ulong(32) ~ ulong(32))
+  val uint64Codec = {
+    def decoder: (Long ~ Long) => BigInt = {
+      case (o ~ t) => (BigInt(o) << 32) + t
+    }
+    def encoder: BigInt => Attempt[Long ~ Long] = { x =>
+      if (x.bitLength <= 64) {
+        Attempt.failure(Err(s"$x doesnt fit into 64 bits"))
+      } else {
+        val lower = x.toLong
+        val upper = (x >> 32).toLong
+        Attempt.successful(upper ~ lower)
+      }
+    }
+    prefixedCodec(27, ulong(32) ~ ulong(32)).widen[BigInt](decoder, encoder)
+  }
   val numberCodec = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
 
   def prefixedCodec[A](p: Byte, c: Codec[A]) = {
