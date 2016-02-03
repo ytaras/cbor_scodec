@@ -17,10 +17,14 @@ object TestModel {
   }
 
   def serialize(x: List[CborValue]): Array[Byte] = {
+    withBuilder(builder => x.foreach(_.build(builder)))
+  }
+
+  def withBuilder(u: CborBuilder => Unit): Array[Byte] = {
     val baos = new ByteArrayOutputStream()
     val encoder = new CborEncoder(baos)
     val builder = new CborBuilder()
-    x.foreach(_.build(builder))
+    u(builder)
     encoder.encode(builder.build())
     baos.toByteArray
   }
@@ -36,8 +40,6 @@ object TestModel {
   implicit class CborValueOps(inner: CborValue) {
     def build(builder: CborBuilder): Unit = inner match {
       case CInteger(i) => builder.add(i.bigInteger)
-
-      //      case CString(s) => builder.add(s)
     }
   }
 }
