@@ -46,6 +46,9 @@ trait ScodecHelpers {
     Codec.decode(data)(c)
   }
 
+  def decodeByNegativeNumber[A](c: Codec[A])(b: Array[Byte]) =
+    decodedWithPrefix(bin"001")(c, b)
+
   object toNum extends Poly1 {
     implicit def caseNum[N: Numeric] = at[N](identity)
   }

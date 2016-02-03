@@ -12,13 +12,21 @@ import org.scalatest.prop.PropertyChecks
 class NumbersSuite extends FunSuite with PropertyChecks with ScodecHelpers {
 
   test("Should decode positive numbers") {
-    forAll { (x: Long) =>
-      whenever(0 <= x) {
-        val bytes = withBuilder(_.add(x))
+    forAll { (x: BigInt) =>
+      whenever(0 <= x && x.bitLength <= 64) {
+        val bytes = withBuilder(_.add(x.bigInteger))
         val result = decodeByNumber(Codecs.numberCodec)(bytes) map (_.value.fold(toNum))
         result should contain(x)
       }
     }
   }
-
+  test("Should decode negative numbers") {
+    forAll { (x: BigInt) =>
+      whenever(0 > x && x.bitLength <= 64) {
+        val bytes = withBuilder(_.add(x.bigInteger))
+        val result = decodeByNegativeNumber(Codecs.negativeNumberCodec)(bytes) map (_.value.fold(toNum))
+        result should contain(x)
+      }
+    }
+  }
 }

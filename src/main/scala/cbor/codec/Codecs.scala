@@ -3,6 +3,8 @@ package cbor.codec
 import scodec._
 import scodec.bits.{BitVector, _}
 import scodec.codecs._
+import shapeless.ops.coproduct._
+import shapeless.{Poly1, _}
 
 import scala.language.higherKinds
 
@@ -11,11 +13,14 @@ import scala.language.higherKinds
   */
 object Codecs extends NumberCodecs {
 
-  val singleValueCodec =
-    constant(bin"000") ~> numberCodec
+  val singleValueCodec: Codec[NumberChoice] = choice(
+    constant(bin"000") ~> numberCodec,
+    constant(bin"001") ~> negativeNumberCodec
+  )
 }
 
 trait NumberCodecs {
+  type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
   val smallByteCodec = {
     val validate: Byte => Attempt[Byte] = {
       case x if 0 <= x && x <= 23 => Attempt.successful(x)
@@ -41,7 +46,11 @@ trait NumberCodecs {
     }
     prefixedCodec(27, ulong(32) ~ ulong(32)).widen[BigInt](decoder, encoder)
   }
-  val numberCodec = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
+  val numberCodec: Codec[NumberChoice] = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
+
+  import Mapper._
+
+  val negativeNumberCodec: Codec[NumberChoice] = numberCodec.xmapc(x => x.map(negate))(x => x.map(negate))
 
   def prefixedCodec[A](p: Byte, c: Codec[A]) = {
     val marker = BitVector.fromByte(p).drop(3)
@@ -49,6 +58,15 @@ trait NumberCodecs {
     require(marker.size == 5)
     constant(marker) ~> c
   }
+
+  object negate extends Poly1 {
+    implicit def number[N: Numeric] = at[N] { x =>
+      val instance = implicitly[Numeric[N]]
+      val minusOne: N = instance.fromInt(-1)
+      instance.minus(minusOne, x)
+    }
+  }
+
 
 }
 
