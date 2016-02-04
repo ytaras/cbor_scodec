@@ -4,9 +4,9 @@ import scodec._
 import scodec.bits.{BitVector, _}
 import scodec.codecs._
 import shapeless._
-import shapeless.ops.coproduct.Mapper
+import shapeless.ops.coproduct.{Inject, Mapper}
 
-import scala.language.higherKinds
+import scala.language.{higherKinds, implicitConversions}
 
 /**
   * Created by ytaras on 1/30/16.
@@ -26,19 +26,11 @@ trait StringCodecs {
   val binaryDataCodec =
     variableSizeBytesLong(stringSize(bin"010"), bytes)
 
-  // TODO Choose compact representation
   def stringSize(prefix: BitVector): Codec[Long] =
-    (constant(prefix) ~> numberCodec).xmapc(_.map(toLong).unify)(x => Coproduct[NumberChoice](x))
-
-  object toLong extends Poly1 {
-    implicit def number[N: Numeric]: Case.Aux[N, Long] =
-      at[N](implicitly[Numeric[N]].toLong)
-  }
-
+    constant(prefix) ~> numberCodec
 }
 
-trait NumberCodecs {
-  type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
+trait NumberCodecs extends NumberOps {
   val smallByteCodec = {
     val validate: Byte => Attempt[Byte] = {
       case x if 0 <= x && x <= 23 => Attempt.successful(x)
@@ -64,7 +56,8 @@ trait NumberCodecs {
     }
     prefixedCodec(27, ulong(32) ~ ulong(32)).widen[BigInt](decoder, encoder)
   }
-  val numberCodec: Codec[NumberChoice] = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
+  val numberCodec: Codec[NumberChoice] =
+    (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
   import Mapper._
 
   val negativeNumberCodec: Codec[NumberChoice] = numberCodec.xmapc(x => x.map(negate))(x => x.map(negate))
@@ -76,6 +69,35 @@ trait NumberCodecs {
     constant(marker) ~> c
   }
 
+}
+
+trait NumberOps {
+  type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
+
+  implicit def toLongCodec(c: Codec[NumberChoice]): Codec[Long] =
+    c.xmapc(_.map(toLong).unify)(x => x)
+
+  implicit def byteToNumberChoice(b: Byte): NumberChoice = Inject[NumberChoice, Byte].apply(b)
+
+  implicit def shortToNumberChoice(s: Short): NumberChoice =
+    if (Byte.MinValue <= s && s <= Byte.MaxValue) {
+      s.toByte
+    } else Inject[NumberChoice, Short].apply(s)
+
+  implicit def intToNumberChoice(i: Int): NumberChoice =
+    if (Short.MinValue <= i && i <= Short.MaxValue) {
+      i.toShort
+    } else Inject[NumberChoice, Int].apply(i)
+
+  implicit def longToNumberChoice(l: Long): NumberChoice =
+    if (Int.MinValue <= l && l <= Int.MaxValue) {
+      l.toInt
+    } else Inject[NumberChoice, Long].apply(l)
+
+  implicit def bigIntToNumberChoice(b: BigInt): NumberChoice =
+    if (Long.MinValue <= b && b <= Long.MaxValue) {
+      b.toLong
+    } else Inject[NumberChoice, BigInt].apply(b)
   object negate extends Poly1 {
     implicit def number[N: Numeric]: Case.Aux[N, N] = at[N] { x =>
       val instance = implicitly[Numeric[N]]
@@ -84,6 +106,20 @@ trait NumberCodecs {
     }
   }
 
+  object toLong extends Poly1 {
+    implicit def number[N: Numeric]: Case.Aux[N, Long] =
+      at[N](implicitly[Numeric[N]].toLong)
+  }
 
+  object toBigInt extends Poly1 {
+    implicit def b = at[Byte](BigInt(_))
+
+    implicit def s = at[Short](BigInt(_))
+
+    implicit def i = at[Int](BigInt(_))
+
+    implicit def l = at[Long](BigInt(_))
+    implicit def bi = at[BigInt](identity)
+  }
 }
 
