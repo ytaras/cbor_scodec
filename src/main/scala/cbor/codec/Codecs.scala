@@ -27,13 +27,7 @@ trait StringCodecs {
     variableSizeBytesLong(stringSize(bin"010"), bytes)
 
   def stringSize(prefix: BitVector): Codec[Long] =
-    (constant(prefix) ~> numberCodec).xmapc(_.map(toLong).unify)(x => x)
-
-  object toLong extends Poly1 {
-    implicit def number[N: Numeric]: Case.Aux[N, Long] =
-      at[N](implicitly[Numeric[N]].toLong)
-  }
-
+    constant(prefix) ~> numberCodec
 }
 
 trait NumberCodecs extends NumberOps {
@@ -62,7 +56,8 @@ trait NumberCodecs extends NumberOps {
     }
     prefixedCodec(27, ulong(32) ~ ulong(32)).widen[BigInt](decoder, encoder)
   }
-  val numberCodec: Codec[NumberChoice] = (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
+  val numberCodec: Codec[NumberChoice] =
+    (smallByteCodec :+: uint8Codec :+: uint16Codec :+: uint32Codec :+: uint64Codec).choice
   import Mapper._
 
   val negativeNumberCodec: Codec[NumberChoice] = numberCodec.xmapc(x => x.map(negate))(x => x.map(negate))
@@ -74,10 +69,13 @@ trait NumberCodecs extends NumberOps {
     constant(marker) ~> c
   }
 
-  }
+}
 
 trait NumberOps {
   type NumberChoice = Byte :+: Short :+: Int :+: Long :+: BigInt :+: CNil
+
+  implicit def toLongCodec(c: Codec[NumberChoice]): Codec[Long] =
+    c.xmapc(_.map(toLong).unify)(x => x)
 
   implicit def byteToNumberChoice(b: Byte): NumberChoice = Inject[NumberChoice, Byte].apply(b)
 
@@ -108,23 +106,19 @@ trait NumberOps {
     }
   }
 
+  object toLong extends Poly1 {
+    implicit def number[N: Numeric]: Case.Aux[N, Long] =
+      at[N](implicitly[Numeric[N]].toLong)
+  }
+
   object toBigInt extends Poly1 {
-    implicit def b = at[Byte] {
-      BigInt(_)
-    }
+    implicit def b = at[Byte](BigInt(_))
 
-    implicit def s = at[Short] {
-      BigInt(_)
-    }
+    implicit def s = at[Short](BigInt(_))
 
-    implicit def i = at[Int] {
-      BigInt(_)
-    }
+    implicit def i = at[Int](BigInt(_))
 
-    implicit def l = at[Long] {
-      BigInt(_)
-    }
-
+    implicit def l = at[Long](BigInt(_))
     implicit def bi = at[BigInt](identity)
   }
 }
