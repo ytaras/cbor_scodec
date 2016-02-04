@@ -32,7 +32,7 @@ class NumbersSuite extends FunSuite with PropertyChecks with ScodecHelpers {
   test("Should provide compact representation") {
     import scodec.bits._
     val result = Codecs.utfStringCodec.encode("123")
-    result should contain(hex"63 31 32 33")
+    result should contain(hex"63 31 32 33".toBitVector)
 
   }
 }
